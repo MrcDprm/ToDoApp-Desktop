@@ -7,15 +7,17 @@ import { TaskCard } from '../components/TaskCard'
 import { TaskForm } from '../components/TaskForm'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
+import { AIPlanModal } from '../components/AIPlanModal'
 import type { Todo, TodoFormData } from '../types'
 
 type Filter = 'all' | 'active' | 'completed'
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { todos, loading, createTodo, editTodo, toggleTodo, deleteTodo } = useTodos()
+  const { todos, loading, createTodo, editTodo, toggleTodo, deleteTodo, createManyTodos } = useTodos()
 
   const [addOpen, setAddOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Todo | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -158,14 +160,24 @@ export default function Dashboard() {
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
-          <Button
-            variant="primary"
-            size="md"
-            icon={<PlusIcon className="w-4 h-4" />}
-            onClick={() => setAddOpen(true)}
-          >
-            Yeni Görev
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="md"
+              icon={<SparklesIcon className="w-4 h-4" />}
+              onClick={() => setAiOpen(true)}
+            >
+              AI ile Planla
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              icon={<PlusIcon className="w-4 h-4" />}
+              onClick={() => setAddOpen(true)}
+            >
+              Yeni Görev
+            </Button>
+          </div>
         </header>
 
         {/* Search */}
@@ -243,6 +255,13 @@ export default function Dashboard() {
         )}
       </Modal>
 
+      {/* AI Plan Modal */}
+      <AIPlanModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onAddSteps={createManyTodos}
+      />
+
       {/* Delete Confirm Modal */}
       <Modal
         open={!!deleteTarget}
@@ -262,6 +281,9 @@ export default function Dashboard() {
   )
 }
 
+function SparklesIcon({ className }: { className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.88 5.76L20 9l-4.94 3.8L16.72 19 12 15.77 7.28 19l1.66-6.2L4 9l6.12-.24L12 3z" /></svg>
+}
 function CheckIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
 }

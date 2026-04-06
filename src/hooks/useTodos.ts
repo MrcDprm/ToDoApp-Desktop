@@ -94,5 +94,21 @@ export function useTodos() {
     removeTodo(id)
   }
 
-  return { todos, loading, createTodo, editTodo, toggleTodo, deleteTodo }
+  async function createManyTodos(titles: string[]) {
+    if (!user) return
+    await Promise.all(
+      titles.map((title) =>
+        addDoc(collection(db, 'todos'), {
+          userId: user.uid,
+          title: title.trim(),
+          description: '',
+          dueDate: null,
+          isCompleted: false,
+          createdAt: serverTimestamp(),
+        }),
+      ),
+    )
+  }
+
+  return { todos, loading, createTodo, editTodo, toggleTodo, deleteTodo, createManyTodos }
 }
