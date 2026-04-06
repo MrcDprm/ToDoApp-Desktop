@@ -5,7 +5,7 @@ import {
   handleDueTasks,
   clearScheduledNotifications,
   type SerializedTodo,
-} from './notifications'
+} from './notifications.js'
 
 const isDev = process.env.NODE_ENV === 'development'
 
