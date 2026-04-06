@@ -1,6 +1,11 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
-import { scheduleNotifications } from './notifications'
+import {
+  scheduleNotifications,
+  handleDueTasks,
+  clearScheduledNotifications,
+  type SerializedTodo,
+} from './notifications'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -24,7 +29,6 @@ function createWindow(): void {
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
@@ -34,13 +38,19 @@ function createWindow(): void {
   })
 
   mainWindow.on('closed', () => {
+    clearScheduledNotifications()
     mainWindow = null
   })
 }
 
 app.whenReady().then(() => {
   createWindow()
-  scheduleNotifications(mainWindow)
+
+  if (mainWindow) {
+    mainWindow.once('ready-to-show', () => {
+      scheduleNotifications(mainWindow)
+    })
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -50,9 +60,14 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  clearScheduledNotifications()
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
 ipcMain.handle('get-platform', () => process.platform)
+
+ipcMain.on('due-tasks-response', (_event, todos: SerializedTodo[]) => {
+  handleDueTasks(todos)
+})

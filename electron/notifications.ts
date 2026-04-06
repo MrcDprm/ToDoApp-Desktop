@@ -1,14 +1,17 @@
 import { Notification, BrowserWindow } from 'electron'
 
-interface Todo {
+export interface SerializedTodo {
   id: string
   title: string
-  dueDate: Date
+  dueDate: { seconds: number; nanoseconds: number } | null
   isCompleted: boolean
 }
 
-let notificationInterval: ReturnType<typeof setInterval> | null = null
-let morningNotificationTimeout: ReturnType<typeof setTimeout> | null = null
+const THIRTY_MINUTES_MS = 30 * 60 * 1000
+
+const notifiedIds = new Set<string>()
+let dueDateCheckInterval: ReturnType<typeof setInterval> | null = null
+let morningTimeout: ReturnType<typeof setTimeout> | null = null
 
 export function scheduleNotifications(mainWindow: BrowserWindow | null): void {
   scheduleMorningNotification()
@@ -24,60 +27,60 @@ function scheduleMorningNotification(): void {
     target.setDate(target.getDate() + 1)
   }
 
-  const msUntilMorning = target.getTime() - now.getTime()
+  const msUntil = target.getTime() - now.getTime()
 
-  morningNotificationTimeout = setTimeout(() => {
+  morningTimeout = setTimeout(() => {
     sendNativeNotification(
       'Günaydın! Bugünkü görevleriniz hazır.',
       'ToDoApp görev listenize göz atın ve güne hazırlanın.'
     )
-
-    morningNotificationTimeout = setTimeout(() => {
+    morningTimeout = setTimeout(function reschedule() {
       scheduleMorningNotification()
-    }, 24 * 60 * 60 * 1000)
-  }, msUntilMorning)
+    }, 100)
+  }, msUntil)
 }
 
 function startDueDateChecker(mainWindow: BrowserWindow | null): void {
-  notificationInterval = setInterval(() => {
+  dueDateCheckInterval = setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return
     mainWindow.webContents.send('check-due-tasks')
   }, 60 * 1000)
 }
 
-export function checkAndNotifyDueTasks(todos: Todo[]): void {
-  const now = new Date()
-  const thirtyMinutes = 30 * 60 * 1000
+export function handleDueTasks(todos: SerializedTodo[]): void {
+  const now = Date.now()
 
   todos.forEach((todo) => {
-    if (todo.isCompleted) return
+    if (todo.isCompleted || !todo.dueDate || notifiedIds.has(todo.id)) return
 
-    const dueTime = new Date(todo.dueDate).getTime()
-    const diff = dueTime - now.getTime()
+    const dueMs = todo.dueDate.seconds * 1000
+    const diff = dueMs - now
 
-    if (diff > 0 && diff <= thirtyMinutes) {
+    if (diff > 0 && diff <= THIRTY_MINUTES_MS) {
+      const minutes = Math.round(diff / 60000)
       sendNativeNotification(
         `Görev yaklaşıyor: ${todo.title}`,
-        `Bu görev 30 dakika içinde sona eriyor.`
+        `Bu görev ${minutes} dakika içinde sona eriyor.`
       )
+      notifiedIds.add(todo.id)
+
+      setTimeout(() => notifiedIds.delete(todo.id), THIRTY_MINUTES_MS + 60_000)
     }
   })
 }
 
 export function sendNativeNotification(title: string, body: string): void {
   if (!Notification.isSupported()) return
-
-  const notification = new Notification({ title, body })
-  notification.show()
+  new Notification({ title, body, silent: false }).show()
 }
 
 export function clearScheduledNotifications(): void {
-  if (notificationInterval) {
-    clearInterval(notificationInterval)
-    notificationInterval = null
+  if (dueDateCheckInterval) {
+    clearInterval(dueDateCheckInterval)
+    dueDateCheckInterval = null
   }
-  if (morningNotificationTimeout) {
-    clearTimeout(morningNotificationTimeout)
-    morningNotificationTimeout = null
+  if (morningTimeout) {
+    clearTimeout(morningTimeout)
+    morningTimeout = null
   }
 }

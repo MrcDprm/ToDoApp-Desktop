@@ -1,11 +1,24 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+export interface SerializedTodo {
+  id: string
+  title: string
+  dueDate: { seconds: number; nanoseconds: number } | null
+  isCompleted: boolean
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
-  getPlatform: () => ipcRenderer.invoke('get-platform'),
-  onNotification: (callback: (data: { title: string; body: string }) => void) => {
-    ipcRenderer.on('show-notification', (_event, data) => callback(data))
+  getPlatform: (): Promise<string> => ipcRenderer.invoke('get-platform'),
+
+  onCheckDueTasks: (callback: () => void): void => {
+    ipcRenderer.on('check-due-tasks', () => callback())
   },
-  removeNotificationListener: () => {
-    ipcRenderer.removeAllListeners('show-notification')
+
+  sendDueTasks: (todos: SerializedTodo[]): void => {
+    ipcRenderer.send('due-tasks-response', todos)
+  },
+
+  removeCheckDueTasksListener: (): void => {
+    ipcRenderer.removeAllListeners('check-due-tasks')
   },
 })

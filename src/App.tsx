@@ -1,9 +1,11 @@
 import Login from './views/Login'
 import Dashboard from './views/Dashboard'
 import { useAuth } from './hooks/useAuth'
+import { useNotifications } from './hooks/useNotifications'
 
-export default function App() {
+function AppContent() {
   const { user, loading } = useAuth()
+  useNotifications()
 
   if (loading) {
     return (
@@ -18,4 +20,8 @@ export default function App() {
   }
 
   return <Dashboard />
+}
+
+export default function App() {
+  return <AppContent />
 }
