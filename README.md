@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# ToDoApp — AI Destekli Masaüstü Görev Yönetimi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Electron.js + React + Firebase + OpenAI GPT-3.5 ile geliştirilmiş modern masaüstü görev yönetim uygulaması.
 
-Currently, two official plugins are available:
+## Özellikler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Firebase Authentication** — E-posta/şifre ile kayıt ve giriş
+- **Firestore** — Gerçek zamanlı görev senkronizasyonu
+- **AI Planlama** — GPT-3.5 Turbo ile hedefleri 5 adımlık eylem planına dönüştürme
+- **Masaüstü Bildirimleri** — Görev bitiş saatinden 30 dk önce ve sabah 08:30'da native bildirim
+- **Karanlık/Aydınlık Mod** — Tercihlerinize göre tema değiştirme
 
-## React Compiler
+## Kurulum
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Gereksinimler
 
-## Expanding the ESLint configuration
+- Node.js 18+
+- Firebase projesi
+- OpenAI API anahtarı
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Adımlar
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. Bağımlılıkları yükleyin:
+   ```bash
+   npm install
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. `.env` dosyasını düzenleyin:
+   ```env
+   VITE_FIREBASE_API_KEY="your-api-key"
+   VITE_OPENAI_API_KEY="your-openai-key"
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+3. Geliştirme modunda başlatın:
+   ```bash
+   npm run dev
+   ```
+
+## Derleme (Paketleme)
+
+```bash
+# Windows için .exe installer
+npm run dist:win
+
+# macOS için .dmg
+npm run dist:mac
+
+# Linux için .AppImage
+npm run dist:linux
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Derlenmiş dosyalar `release/` klasörüne çıkar.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Teknoloji Yığını
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Katman | Teknoloji |
+|--------|-----------|
+| Masaüstü | Electron.js |
+| Frontend | React + TypeScript + Vite |
+| Stil | Tailwind CSS v4 |
+| Veritabanı | Firebase Firestore |
+| Kimlik Doğrulama | Firebase Authentication |
+| AI | OpenAI GPT-3.5 Turbo |
+| Global State | Zustand |
+
+## Firestore Güvenlik Kuralları
+
+Firebase konsolunda aşağıdaki kuralları uygulamanız önerilir:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /todos/{todoId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}
 ```

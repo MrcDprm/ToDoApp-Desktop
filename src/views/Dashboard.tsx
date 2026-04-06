@@ -12,7 +12,11 @@ import type { Todo, TodoFormData } from '../types'
 
 type Filter = 'all' | 'active' | 'completed'
 
-export default function Dashboard() {
+interface DashboardProps {
+  onNavigateToProfile: () => void
+}
+
+export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
   const { user } = useAuth()
   const { todos, loading, createTodo, editTodo, toggleTodo, deleteTodo, createManyTodos } = useTodos()
 
@@ -72,19 +76,23 @@ export default function Dashboard() {
         </div>
 
         {/* User info */}
-        <div className={`px-5 py-4 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+        <button
+          onClick={onNavigateToProfile}
+          className={`w-full px-5 py-4 border-b text-left transition-colors ${darkMode ? 'border-slate-800 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}
+        >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center shrink-0">
               <span className="text-sm font-medium text-violet-400">
                 {user?.displayName?.[0]?.toUpperCase() ?? 'U'}
               </span>
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className={`text-sm font-medium truncate ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{user?.displayName}</p>
               <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
+            <ChevronRightIcon className="w-3.5 h-3.5 text-slate-600 shrink-0" />
           </div>
-        </div>
+        </button>
 
         {/* Progress */}
         <div className="px-5 py-4">
@@ -281,6 +289,9 @@ export default function Dashboard() {
   )
 }
 
+function ChevronRightIcon({ className }: { className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+}
 function SparklesIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.88 5.76L20 9l-4.94 3.8L16.72 19 12 15.77 7.28 19l1.66-6.2L4 9l6.12-.24L12 3z" /></svg>
 }

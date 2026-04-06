@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import Login from './views/Login'
 import Dashboard from './views/Dashboard'
+import Profile from './views/Profile'
 import { useAuth } from './hooks/useAuth'
 import { useNotifications } from './hooks/useNotifications'
 
+type View = 'dashboard' | 'profile'
+
 function AppContent() {
   const { user, loading } = useAuth()
+  const [view, setView] = useState<View>('dashboard')
   useNotifications()
 
   if (loading) {
@@ -19,7 +24,11 @@ function AppContent() {
     return <Login />
   }
 
-  return <Dashboard />
+  if (view === 'profile') {
+    return <Profile onBack={() => setView('dashboard')} />
+  }
+
+  return <Dashboard onNavigateToProfile={() => setView('profile')} />
 }
 
 export default function App() {
