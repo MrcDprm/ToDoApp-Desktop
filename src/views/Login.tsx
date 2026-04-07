@@ -104,7 +104,7 @@ export default function Login() {
             <span className="text-violet-400">yapay zeka</span> ile yönetin
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed">
-            GPT destekli planlama, masaüstü bildirimler ve gerçek zamanlı
+            Gemini destekli planlama, masaüstü bildirimler ve gerçek zamanlı
             senkronizasyon ile verimliliğinizi bir üst seviyeye taşıyın.
           </p>
           <div className="space-y-3">
