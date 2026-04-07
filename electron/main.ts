@@ -7,6 +7,8 @@ import {
   type SerializedTodo,
 } from './notifications'
 
+app.setAppUserModelId('com.todoapp.desktop')
+
 const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null

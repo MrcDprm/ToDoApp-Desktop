@@ -51,6 +51,7 @@
   "build": {
     "appId": "com.todoapp.desktop",
     "productName": "ToDoApp",
+    "asar": true,
     "copyright": "Copyright © 2026 ToDoApp",
     "directories": {
       "buildResources": "resources",
