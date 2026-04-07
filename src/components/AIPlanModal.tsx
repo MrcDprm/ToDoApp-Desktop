@@ -99,7 +99,7 @@ export function AIPlanModal({ open, onClose, onAddSteps }: AIPlanModalProps) {
             <SparklesIcon className="w-4 h-4 text-violet-400" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-300">Gemini 1.5 Pro</p>
+            <p className="text-xs font-medium text-slate-300">Gemini 1.5 Flash</p>
             <p className="text-xs text-slate-500">Google AI eylem planı oluşturucu</p>
           </div>
         </div>

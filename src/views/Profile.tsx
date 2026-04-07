@@ -126,7 +126,7 @@ export default function Profile({ onBack }: ProfileProps) {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-white">AI Kullanım Kotası</h2>
-              <p className="text-xs text-slate-500">Gemini 1.5 Pro eylem planı oluşturucu</p>
+              <p className="text-xs text-slate-500">Gemini 1.5 Flash eylem planı oluşturucu</p>
             </div>
           </div>
 
