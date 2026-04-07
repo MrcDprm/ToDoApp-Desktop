@@ -1,23 +1,23 @@
-const GROQ_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const GEMINI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
 
 export interface TaskPlan {
   steps: string[]
 }
 
 export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
-  if (!GROQ_API_KEY) {
+  if (!GEMINI_API_KEY) {
     throw new Error('API anahtarı bulunamadı. Lütfen .env dosyanıza VITE_OPENAI_API_KEY ekleyin.')
   }
 
-  const response = await fetch(GROQ_API_URL, {
+  const response = await fetch(GEMINI_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${GEMINI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'gemini-2.0-flash',
       messages: [
         {
           role: 'system',
@@ -36,7 +36,7 @@ export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
 
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.error?.message || 'AI API hatası')
+    throw new Error(error.error?.message || 'Gemini API hatası')
   }
 
   const data = await response.json()
