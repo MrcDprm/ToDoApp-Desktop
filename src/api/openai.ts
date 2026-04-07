@@ -17,7 +17,7 @@ export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
       Authorization: `Bearer ${GEMINI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-pro',
       messages: [
         {
           role: 'system',
