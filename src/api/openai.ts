@@ -1,24 +1,28 @@
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
+const GROQ_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 export interface TaskPlan {
   steps: string[]
 }
 
 export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
-  const response = await fetch(OPENAI_API_URL, {
+  if (!GROQ_API_KEY) {
+    throw new Error('API anahtarı bulunamadı. Lütfen .env dosyanıza VITE_OPENAI_API_KEY ekleyin.')
+  }
+
+  const response = await fetch(GROQ_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
           content:
-            'Sen bir üretkenlik asistanısın. Kullanıcının verdiği hedefi, net ve eyleme geçirilebilir 5 adımlık bir eylem planına böl. Her adımı kısa ve somut tut. Sadece JSON formatında yanıt ver: {"steps": ["adım 1", "adım 2", "adım 3", "adım 4", "adım 5"]}',
+            'Sen bir üretkenlik asistanısın. Kullanıcının verdiği hedefi, net ve eyleme geçirilebilir 5 adımlık bir eylem planına böl. Her adımı kısa ve somut tut. SADECE JSON formatında yanıt ver, başka hiçbir şey yazma: {"steps": ["adım 1", "adım 2", "adım 3", "adım 4", "adım 5"]}',
         },
         {
           role: 'user',
@@ -32,15 +36,17 @@ export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
 
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.error?.message || 'OpenAI API hatası')
+    throw new Error(error.error?.message || 'AI API hatası')
   }
 
   const data = await response.json()
-  const content = data.choices[0]?.message?.content
+  const content = data.choices[0]?.message?.content?.trim()
 
   try {
-    return JSON.parse(content) as TaskPlan
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('JSON bulunamadı')
+    return JSON.parse(jsonMatch[0]) as TaskPlan
   } catch {
-    throw new Error('AI yanıtı ayrıştırılamadı')
+    throw new Error('AI yanıtı ayrıştırılamadı. Lütfen tekrar deneyin.')
   }
 }
