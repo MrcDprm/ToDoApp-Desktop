@@ -9,7 +9,6 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  serverTimestamp,
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '../api/firebase'
@@ -18,7 +17,7 @@ import { useAuthStore } from '../store/authStore'
 import type { TodoFormData } from '../types'
 
 export function useTodos() {
-  const { todos, loading, setTodos, addTodo, updateTodo, removeTodo, setLoading } = useTodoStore()
+  const { todos, loading, setTodos, setLoading } = useTodoStore()
   const user = useAuthStore((s) => s.user)
 
   useEffect(() => {
@@ -47,21 +46,11 @@ export function useTodos() {
   async function createTodo(data: TodoFormData) {
     if (!user) return
 
-    const docRef = await addDoc(collection(db, 'todos'), {
+    await addDoc(collection(db, 'todos'), {
       userId: user.uid,
       title: data.title.trim(),
       description: data.description.trim(),
       dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : null,
-      isCompleted: false,
-      createdAt: serverTimestamp(),
-    })
-
-    addTodo({
-      id: docRef.id,
-      userId: user.uid,
-      title: data.title.trim(),
-      description: data.description.trim(),
-      dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : (null as unknown as ReturnType<typeof Timestamp.fromDate>),
       isCompleted: false,
       createdAt: Timestamp.now(),
     })
@@ -76,22 +65,15 @@ export function useTodos() {
       dueDate: dueDate ?? null,
     }
     await updateDoc(ref, firestoreUpdates)
-    updateTodo(id, {
-      title: data.title.trim(),
-      description: data.description.trim(),
-      ...(dueDate !== undefined ? { dueDate } : {}),
-    })
   }
 
   async function toggleTodo(id: string, isCompleted: boolean) {
     const ref = doc(db, 'todos', id)
     await updateDoc(ref, { isCompleted })
-    updateTodo(id, { isCompleted })
   }
 
   async function deleteTodo(id: string) {
     await deleteDoc(doc(db, 'todos', id))
-    removeTodo(id)
   }
 
   async function createManyTodos(titles: string[]) {
@@ -104,7 +86,7 @@ export function useTodos() {
           description: '',
           dueDate: null,
           isCompleted: false,
-          createdAt: serverTimestamp(),
+          createdAt: Timestamp.now(),
         }),
       ),
     )

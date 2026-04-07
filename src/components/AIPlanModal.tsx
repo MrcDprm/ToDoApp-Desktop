@@ -3,10 +3,15 @@ import { doc, updateDoc, increment } from 'firebase/firestore'
 import { db } from '../api/firebase'
 import { generateTaskPlan } from '../api/openai'
 import { useAuthStore } from '../store/authStore'
+import { useToastStore } from '../store/toastStore'
 import { Button } from './Button'
 import { Modal } from './Modal'
 
 const AI_QUOTA_MAX = 10
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 interface AIPlanModalProps {
   open: boolean
@@ -16,6 +21,7 @@ interface AIPlanModalProps {
 
 export function AIPlanModal({ open, onClose, onAddSteps }: AIPlanModalProps) {
   const user = useAuthStore((s) => s.user)
+  const addToast = useToastStore((s) => s.addToast)
 
   const [goal, setGoal] = useState('')
   const [steps, setSteps] = useState<string[]>([])
@@ -25,8 +31,9 @@ export function AIPlanModal({ open, onClose, onAddSteps }: AIPlanModalProps) {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const usageCount = user?.aiUsageCount ?? 0
-  const remaining = AI_QUOTA_MAX - usageCount
+  const isNewDay = user?.lastAiUsageDate !== todayStr()
+  const effectiveUsageCount = isNewDay ? 0 : (user?.aiUsageCount ?? 0)
+  const remaining = AI_QUOTA_MAX - effectiveUsageCount
   const isQuotaExhausted = remaining <= 0
 
   function handleClose() {
@@ -61,9 +68,16 @@ export function AIPlanModal({ open, onClose, onAddSteps }: AIPlanModalProps) {
     try {
       const plan = await generateTaskPlan(goal.trim())
 
-      await updateDoc(doc(db, 'users', user.uid), {
-        aiUsageCount: increment(1),
-      })
+      if (isNewDay) {
+        await updateDoc(doc(db, 'users', user.uid), {
+          aiUsageCount: 1,
+          lastAiUsageDate: todayStr(),
+        })
+      } else {
+        await updateDoc(doc(db, 'users', user.uid), {
+          aiUsageCount: increment(1),
+        })
+      }
 
       setSteps(plan.steps)
       setSelected(new Set(plan.steps.map((_, i) => i)))
@@ -82,6 +96,7 @@ export function AIPlanModal({ open, onClose, onAddSteps }: AIPlanModalProps) {
     try {
       const chosen = steps.filter((_, i) => selected.has(i))
       await onAddSteps(chosen)
+      addToast(`${chosen.length} görev planı eklendi`)
       handleClose()
     } catch {
       setError('Görevler eklenirken hata oluştu.')
@@ -99,7 +114,7 @@ export function AIPlanModal({ open, onClose, onAddSteps }: AIPlanModalProps) {
             <SparklesIcon className="w-4 h-4 text-violet-400" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-300">Gemini 1.5 Flash</p>
+            <p className="text-xs font-medium text-slate-300">Gemini 2.5 Flash</p>
             <p className="text-xs text-slate-500">Google AI eylem planı oluşturucu</p>
           </div>
         </div>

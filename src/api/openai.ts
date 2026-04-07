@@ -9,7 +9,7 @@ export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
     throw new Error('API anahtarı bulunamadı. Lütfen .env dosyanıza VITE_OPENAI_API_KEY ekleyin.')
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`
 
   const response = await fetch(url, {
     method: 'POST',
@@ -21,14 +21,25 @@ export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
         {
           parts: [
             {
-              text: `Sen bir üretkenlik asistanısın. Aşağıdaki hedef için net ve eyleme geçirilebilir 5 adımlık bir eylem planı oluştur. SADECE şu JSON formatında yanıt ver, başka hiçbir şey yazma:\n{"steps": ["adım 1", "adım 2", "adım 3", "adım 4", "adım 5"]}\n\nHedef: ${goal}`,
+              text: `Sen bir üretkenlik asistanısın. Aşağıdaki hedef için net ve eyleme geçirilebilir 5 adımlık bir eylem planı oluştur.\n\nHedef: ${goal}`,
             },
           ],
         },
       ],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 500,
+        maxOutputTokens: 2000,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            steps: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+          },
+          required: ['steps'],
+        },
       },
     }),
   })
@@ -47,10 +58,8 @@ export async function generateTaskPlan(goal: string): Promise<TaskPlan> {
   }
 
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('JSON bulunamadı')
-    return JSON.parse(jsonMatch[0]) as TaskPlan
+    return JSON.parse(content) as TaskPlan
   } catch {
-    throw new Error('AI yanıtı ayrıştırılamadı. Lütfen tekrar deneyin.')
+    throw new Error('AI yanıtı tamamlayamadı veya format hatalı. Lütfen tekrar deneyin.')
   }
 }

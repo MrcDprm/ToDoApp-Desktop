@@ -5,6 +5,7 @@ export interface User {
   email: string
   displayName: string
   aiUsageCount: number
+  lastAiUsageDate?: string
   createdAt: Timestamp
 }
 

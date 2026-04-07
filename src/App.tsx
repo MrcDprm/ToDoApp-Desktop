@@ -4,6 +4,7 @@ import Dashboard from './views/Dashboard'
 import Profile from './views/Profile'
 import { useAuth } from './hooks/useAuth'
 import { useNotifications } from './hooks/useNotifications'
+import { ToastContainer } from './components/ToastContainer'
 
 type View = 'dashboard' | 'profile'
 
@@ -32,5 +33,10 @@ function AppContent() {
 }
 
 export default function App() {
-  return <AppContent />
+  return (
+    <>
+      <AppContent />
+      <ToastContainer />
+    </>
+  )
 }

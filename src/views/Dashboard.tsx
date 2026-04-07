@@ -8,9 +8,10 @@ import { TaskForm } from '../components/TaskForm'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
 import { AIPlanModal } from '../components/AIPlanModal'
+import { useToastStore } from '../store/toastStore'
 import type { Todo, TodoFormData } from '../types'
 
-type Filter = 'all' | 'active' | 'completed'
+type ActiveTab = 'all' | 'active' | 'overdue' | 'completed'
 
 interface DashboardProps {
   onNavigateToProfile: () => void
@@ -19,12 +20,13 @@ interface DashboardProps {
 export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
   const { user } = useAuth()
   const { todos, loading, createTodo, editTodo, toggleTodo, deleteTodo, createManyTodos } = useTodos()
+  const addToast = useToastStore((s) => s.addToast)
 
   const [addOpen, setAddOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Todo | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [darkMode, setDarkMode] = useState(true)
 
@@ -36,32 +38,82 @@ export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
   async function handleCreate(data: TodoFormData) {
     await createTodo(data)
     setAddOpen(false)
+    addToast('Görev eklendi')
   }
 
   async function handleEdit(data: TodoFormData) {
     if (!editTarget) return
     await editTodo(editTarget.id, data)
     setEditTarget(null)
+    addToast('Görev güncellendi')
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     await deleteTodo(deleteTarget)
     setDeleteTarget(null)
+    addToast('Görev silindi', 'info')
+  }
+
+  const now = new Date()
+
+  function matchesTab(t: Todo): boolean {
+    const dueDate = t.dueDate?.toDate?.()
+    if (activeTab === 'all') return true
+    if (activeTab === 'completed') return t.isCompleted
+    if (activeTab === 'overdue') return !t.isCompleted && !!dueDate && dueDate < now
+    if (activeTab === 'active') return !t.isCompleted && (!dueDate || dueDate >= now)
+    return true
   }
 
   const filtered = todos.filter((t) => {
-    const matchesFilter =
-      filter === 'all' || (filter === 'active' ? !t.isCompleted : t.isCompleted)
     const matchesSearch =
       !searchQuery ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesFilter && matchesSearch
+    return matchesTab(t) && matchesSearch
   })
 
   const completedCount = todos.filter((t) => t.isCompleted).length
+  const overdueCount = todos.filter((t) => {
+    const d = t.dueDate?.toDate?.()
+    return !t.isCompleted && !!d && d < now
+  }).length
+  const activeCount = todos.filter((t) => {
+    const d = t.dueDate?.toDate?.()
+    return !t.isCompleted && (!d || d >= now)
+  }).length
   const progress = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0
+
+  const emptyStateMap: Record<ActiveTab, { icon: JSX.Element; title: string; sub: string }> = {
+    all: {
+      icon: <InboxIcon className="w-8 h-8 text-slate-500" />,
+      title: searchQuery ? 'Sonuç bulunamadı' : 'Henüz görev yok',
+      sub: searchQuery ? 'Farklı bir arama terimi deneyin' : '"Yeni Görev" butonuyla ilk görevinizi ekleyin',
+    },
+    active: {
+      icon: <CheckCircleIcon className="w-8 h-8 text-emerald-500/60" />,
+      title: 'Aktif görev yok',
+      sub: 'Harika! Tüm görevleriniz tamamlanmış veya süresi geçmiş durumda.',
+    },
+    overdue: {
+      icon: <ClockAlertIcon className="w-8 h-8 text-slate-500" />,
+      title: 'Süresi geçmiş görev yok',
+      sub: 'Her şey yolunda! Gecikmiş göreviniz bulunmuyor.',
+    },
+    completed: {
+      icon: <SparklesIcon className="w-8 h-8 text-violet-400/60" />,
+      title: 'Henüz tamamlanan görev yok',
+      sub: 'Görevleri tamamladıkça burada görünecek.',
+    },
+  }
+
+  const tabLabels: Record<ActiveTab, string> = {
+    all: 'Tüm Görevler',
+    active: 'Aktif',
+    overdue: 'Gecikmiş',
+    completed: 'Tamamlanan',
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950' : 'bg-slate-100'}`}>
@@ -115,14 +167,15 @@ export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
         <nav className="flex-1 px-3 py-2 space-y-1">
           {([
             { key: 'all', label: 'Tüm Görevler', count: todos.length },
-            { key: 'active', label: 'Aktif', count: todos.filter((t) => !t.isCompleted).length },
+            { key: 'active', label: 'Aktif', count: activeCount },
+            { key: 'overdue', label: 'Gecikmiş', count: overdueCount, warn: overdueCount > 0 },
             { key: 'completed', label: 'Tamamlanan', count: completedCount },
-          ] as { key: Filter; label: string; count: number }[]).map((item) => (
+          ] as { key: ActiveTab; label: string; count: number; warn?: boolean }[]).map((item) => (
             <button
               key={item.key}
-              onClick={() => setFilter(item.key)}
+              onClick={() => setActiveTab(item.key)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all ${
-                filter === item.key
+                activeTab === item.key
                   ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
                   : darkMode
                     ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -130,7 +183,15 @@ export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
               }`}
             >
               {item.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-md ${filter === item.key ? 'bg-violet-500/30 text-violet-300' : darkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-500'}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-md ${
+                activeTab === item.key
+                  ? 'bg-violet-500/30 text-violet-300'
+                  : item.warn
+                    ? 'bg-red-500/20 text-red-400'
+                    : darkMode
+                      ? 'bg-slate-800 text-slate-500'
+                      : 'bg-slate-200 text-slate-500'
+              }`}>
                 {item.count}
               </span>
             </button>
@@ -162,7 +223,7 @@ export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
         <header className={`sticky top-0 z-10 flex items-center justify-between px-8 py-4 border-b backdrop-blur-md transition-colors duration-300 ${darkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-100/80 border-slate-200'}`}>
           <div>
             <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-              {filter === 'all' ? 'Tüm Görevler' : filter === 'active' ? 'Aktif Görevler' : 'Tamamlanan Görevler'}
+              {tabLabels[activeTab]}
             </h1>
             <p className="text-sm text-slate-500">
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -214,16 +275,14 @@ export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                <InboxIcon className="w-8 h-8 text-slate-500" />
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${darkMode ? 'bg-slate-800/80' : 'bg-slate-200'}`}>
+                {emptyStateMap[activeTab].icon}
               </div>
               <p className={`text-base font-medium mb-1 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                {searchQuery ? 'Sonuç bulunamadı' : 'Henüz görev yok'}
+                {emptyStateMap[activeTab].title}
               </p>
-              <p className="text-sm text-slate-500">
-                {searchQuery
-                  ? 'Farklı bir arama terimi deneyin'
-                  : 'Yeni görev eklemek için "Yeni Görev" butonuna tıklayın'}
+              <p className="text-sm text-slate-500 max-w-xs leading-relaxed">
+                {emptyStateMap[activeTab].sub}
               </p>
             </div>
           ) : (
@@ -291,6 +350,12 @@ export default function Dashboard({ onNavigateToProfile }: DashboardProps) {
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+}
+function CheckCircleIcon({ className }: { className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+}
+function ClockAlertIcon({ className }: { className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /><line x1="12" y1="18" x2="12.01" y2="18" /></svg>
 }
 function SparklesIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.88 5.76L20 9l-4.94 3.8L16.72 19 12 15.77 7.28 19l1.66-6.2L4 9l6.12-.24L12 3z" /></svg>

@@ -18,11 +18,11 @@ export function TaskCard({ todo, onToggle, onEdit, onDelete }: TaskCardProps) {
 
   return (
     <div
-      className={`group flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 ${
+      className={`group flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-950/60 ${
         todo.isCompleted
           ? 'bg-slate-800/30 border-slate-700/40 opacity-60'
           : isOverdue
-            ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+            ? 'bg-red-500/5 border-red-500/30 hover:border-red-500/50 hover:shadow-red-950/40'
             : 'bg-slate-800/50 border-slate-700/60 hover:border-slate-600'
       }`}
     >
