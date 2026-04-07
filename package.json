@@ -8,10 +8,10 @@
   "type": "module",
   "scripts": {
     "dev": "npm run electron:compile && concurrently -k \"vite\" \"npm run electron:watch\" \"npm run electron:start\"",
-    "electron:compile": "tsc -p tsconfig.electron.json",
+    "electron:compile": "tsc -p tsconfig.electron.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'}))\"",
     "electron:watch": "tsc -p tsconfig.electron.json --watch --preserveWatchOutput",
-    "electron:start": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
-    "build": "tsc -p tsconfig.app.json && vite build && tsc -p tsconfig.electron.json",
+    "electron:start": "wait-on tcp:5173 dist-electron/main.js && cross-env NODE_ENV=development electron .",
+    "build": "tsc -p tsconfig.app.json && vite build && tsc -p tsconfig.electron.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'}))\"",
     "preview": "vite preview",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
